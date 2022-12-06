@@ -1,17 +1,11 @@
 USE tempdb;
 
-WITH nums
-  AS (SELECT TOP (100)
-             ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS i
-        FROM master.dbo.spt_values
-       ORDER BY i),
-     item
-  AS (SELECT       (i.RowNumber - 1) / 3 + 1    AS GroupNumber,
-                   i.RowNumber                  AS RucksackNumber,
-                   SUBSTRING(i.Data, nums.i, 1) AS ItemType
-        FROM       dbo.Input AS i
-       CROSS APPLY nums
-       WHERE       nums.i <= LEN(i.Data)),
+WITH item
+  AS (SELECT       (i.RowNumber - 1) / 3 + 1  AS GroupNumber,
+                   i.RowNumber                AS RucksackNumber,
+                   SUBSTRING(i.Data, gn.n, 1) AS ItemType
+        FROM       dbo.Input                   AS i
+       CROSS APPLY dbo.GetNums(1, LEN(i.Data)) AS gn ),
      prio
   AS (SELECT i.GroupNumber,
              i.RucksackNumber,

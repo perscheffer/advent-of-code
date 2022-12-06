@@ -1,11 +1,6 @@
 USE tempdb;
 
-WITH nums
-  AS (SELECT TOP (100)
-             ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS i
-        FROM master.dbo.spt_values
-       ORDER BY i),
-     compartment
+WITH compartment
   AS (SELECT RowNumber                 AS RucksackNumber,
              1                         AS Compartment,
              LEFT(Data, LEN(Data) / 2) AS Contents
@@ -18,10 +13,9 @@ WITH nums
      item
   AS (SELECT       c.RucksackNumber,
                    c.Compartment,
-                   SUBSTRING(c.Contents, nums.i, 1) AS ItemType
-        FROM       compartment AS c
-       CROSS APPLY nums
-       WHERE       nums.i <= LEN(c.Contents)),
+                   SUBSTRING(c.Contents, gn.n, 1) AS ItemType
+        FROM       compartment                     AS c
+       CROSS APPLY dbo.GetNums(1, LEN(c.Contents)) AS gn ),
      prio
   AS (SELECT i.RucksackNumber,
              i.Compartment,
