@@ -1,48 +1,28 @@
 USE tempdb;
 
 --------------------------------------------------------------------------------
---  CREATE TEMP TABLE #Stack_ FROM THE FIRST PART OF THE IMPUT. KEEP
---  "EMPTY CRATES" TO GET A CORRECT STACK NUMBER.
+--  CREATE TEMP TABLE #Stack FROM THE FIRST PART OF THE INPUT
 --------------------------------------------------------------------------------
-DROP TABLE IF EXISTS #Stack_;
+DROP TABLE IF EXISTS #Stack;
 
 WITH
--- Use the first part of the input as the drawing of the starting stacks
-input1
+-- Use the first part of the input as the d of the starting stacks
+drawing
   AS (SELECT RowNumber AS Depth,
              Data
         FROM dbo.Input
        WHERE RowNumber < ((   SELECT MIN(RowNumber)
                                 FROM dbo.Input
-                               WHERE Data IS NULL) - 1)),
--- Make the stack data comma separated
-input2
-  AS (SELECT i2.Depth,
-             REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(i2.Data, '    ', '[-]'), ' ', ''), '][', ','), '[', ''), ']', '') AS Data
-        FROM input1 AS i2)
--- Split the comma separated data into rows
-SELECT       ROW_NUMBER() OVER (PARTITION BY i2.Depth
-                                    ORDER BY (SELECT NULL)) AS StackNumber,
-             i2.Depth,
-             ss.value                                       AS Crate
-  INTO       #Stack_
-  FROM       input2                     AS i2
- CROSS APPLY STRING_SPLIT(i2.Data, ',') AS ss;
-
---------------------------------------------------------------------------------
---  CREATE TEMP TABLE #Stack WITHOUT "EMPTY CRATES" AND WITH CORRECT DEPTH
---------------------------------------------------------------------------------
-DROP TABLE IF EXISTS #Stack;
-
-SELECT StackNumber,
-       ROW_NUMBER() OVER (PARTITION BY StackNumber
-                              ORDER BY Depth) AS Depth,
-       Crate
-  INTO #Stack
-  FROM #Stack_
- WHERE Crate <> '-';
-
-DROP TABLE #Stack_;
+                               WHERE Data IS NULL) - 1)
+         AND Data IS NOT NULL)
+SELECT       gn.n                                     AS StackNumber,
+             ROW_NUMBER() OVER (PARTITION BY gn.n
+                                    ORDER BY d.Depth) AS Depth, -- Calculate new depth after removing "empty crates"
+             SUBSTRING(d.Data, 4 * gn.n - 2, 1)       AS Crate        -- The second and then every fourth character is a crate
+  INTO       #Stack
+  FROM       drawing                                      AS d
+ CROSS APPLY dbo.GetNums(1, (DATALENGTH(d.Data) + 2) / 4) AS gn
+ WHERE       SUBSTRING(d.Data, 4 * gn.n - 2, 1) <> ' ';
 
 --------------------------------------------------------------------------------
 --  CREATE TEMP TABLE #Move FROM THE SECOND PART OF THE INPUT
