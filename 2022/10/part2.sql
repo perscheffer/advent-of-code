@@ -45,18 +45,15 @@ WITH instruction
                       0) + 1 AS X
         FROM cycle AS c),
      crt
-  AS (SELECT      row.n AS Row,
-                  col.n AS Col,
-                  CASE
-                       WHEN r.X - col.n BETWEEN -1 AND 1 THEN
-                           N'█'
-                       ELSE
-                           N'░'
-                  END   AS Pixel
-        FROM      dbo.GetNums(0, 5)  AS row
-       CROSS JOIN dbo.GetNums(0, 39) AS col
-        JOIN      register AS r
-          ON      (40 * row.n + col.n + 1 = r.CycleNumber))
+  AS (SELECT (r.CycleNumber - 1) / 40 AS Row,
+             (r.CycleNumber - 1) % 40 AS Col,
+             CASE
+                  WHEN r.X - ((r.CycleNumber - 1) % 40) BETWEEN -1 AND 1 THEN
+                      N'█'
+                  ELSE
+                      N'░'
+             END                      AS Pixel
+        FROM register AS r)
 SELECT CAST(STRING_AGG(crt.Pixel, N'')WITHIN GROUP(ORDER BY crt.Col) AS nchar(40)) AS Letters
   FROM crt
  GROUP BY crt.Row;
