@@ -57,6 +57,6 @@ WITH instruction
        CROSS JOIN dbo.GetNums(0, 39) AS col
         JOIN      register AS r
           ON      (40 * row.n + col.n + 1 = r.CycleNumber))
-SELECT CAST(STRING_AGG(crt.Pixel, '')WITHIN GROUP(ORDER BY crt.Col) AS nchar(40)) AS Letters
+SELECT CAST(STRING_AGG(crt.Pixel, N'')WITHIN GROUP(ORDER BY crt.Col) AS nchar(40)) AS Letters
   FROM crt
  GROUP BY crt.Row;
