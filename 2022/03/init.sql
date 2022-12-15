@@ -26,70 +26,25 @@ WITH (TABLOCK);
 DROP VIEW dbo.vInput;
 
 --------------------------------------------------------------------------------
---  CREATE GetNums HELPER FUNCTION
---------------------------------------------------------------------------------
-DROP TABLE IF EXISTS dbo.BatchMe;
-
-CREATE TABLE dbo.BatchMe
-(
-    col1 int NOT NULL,
-    INDEX idx_cs CLUSTERED COLUMNSTORE
-);
-GO
-
-CREATE OR ALTER FUNCTION dbo.GetNums
-(
-    @low AS  bigint = 1,
-    @high AS bigint
-)
-RETURNS table
-AS
-RETURN WITH L0
-         AS (SELECT 1 AS c
-               FROM (   VALUES (1),
-                               (1),
-                               (1),
-                               (1),
-                               (1),
-                               (1),
-                               (1),
-                               (1),
-                               (1),
-                               (1),
-                               (1),
-                               (1),
-                               (1),
-                               (1),
-                               (1),
-                               (1)) AS D (c) ),
-            L1
-         AS (SELECT      1 AS c
-               FROM      L0 AS A
-              CROSS JOIN L0 AS B),
-            L2
-         AS (SELECT      1 AS c
-               FROM      L1 AS A
-              CROSS JOIN L1 AS B),
-            L3
-         AS (SELECT      1 AS c
-               FROM      L2 AS A
-              CROSS JOIN L2 AS B),
-            Nums
-         AS (SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS rownum
-               FROM L3)
-SELECT            TOP (@high - @low + 1)
-                  Nums.rownum             AS rn,
-                  @high + 1 - Nums.rownum AS op,
-                  @low - 1 + Nums.rownum  AS n
-  FROM            Nums
-  LEFT OUTER JOIN dbo.BatchMe AS bm
-               ON 1 = 0
- ORDER BY Nums.rownum;
-GO
-
---------------------------------------------------------------------------------
 --  VIEW INPUT DATA
 --------------------------------------------------------------------------------
-
 SELECT *
   FROM dbo.Input;
+
+WITH cte
+  AS (SELECT MAX(LEN(Data))                                           AS MaxLength,
+             2 * MAX(LEN(Data))                                       AS DoubleMaxLength,
+             POWER(10, CAST(FLOOR(LOG10(2 * MAX(LEN(Data)))) AS int)) AS Magnitude
+        FROM dbo.Input)
+SELECT c.MaxLength,
+       CASE
+            WHEN 1.0 * c.DoubleMaxLength / c.Magnitude <= 1 THEN
+                c.Magnitude
+            WHEN 1.0 * c.DoubleMaxLength / c.Magnitude <= 2 THEN
+                2 * c.Magnitude
+            WHEN 1.0 * c.DoubleMaxLength / c.Magnitude <= 5 THEN
+                5 * c.Magnitude
+            ELSE
+                10 * c.Magnitude
+       END AS ColumnSize
+  FROM cte AS c;

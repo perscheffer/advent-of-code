@@ -1,15 +1,15 @@
 USE tempdb;
 
 WITH marker
-  AS (SELECT       gn.n + 3                   AS EndPosition,
-                   SUBSTRING(i.Data, gn.n, 4) AS Marker
-        FROM       dbo.Input                       AS i
-       CROSS APPLY dbo.GetNums(1, LEN(i.Data) - 3) AS gn ),
+  AS (SELECT       gs.value + 3                   AS EndPosition,
+                   SUBSTRING(i.Data, gs.value, 4) AS Marker
+        FROM       dbo.Input                                           AS i
+       CROSS APPLY GENERATE_SERIES(CAST(1 AS bigint), LEN(i.Data) - 3) AS gs ),
      marker_char
   AS (SELECT       m.EndPosition,
-                   SUBSTRING(m.Marker, gn.n, 1) AS MarkerChar
-        FROM       marker            AS m
-       CROSS APPLY dbo.GetNums(1, 4) AS gn ),
+                   SUBSTRING(m.Marker, gs.value, 1) AS MarkerChar
+        FROM       marker                AS m
+       CROSS APPLY GENERATE_SERIES(1, 4) AS gs ),
      distinct_chars
   AS (SELECT mc.EndPosition,
              COUNT(DISTINCT mc.MarkerChar) AS DistinctMarkerChars

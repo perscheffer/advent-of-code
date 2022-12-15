@@ -13,9 +13,9 @@ WITH compartment
      item
   AS (SELECT       c.RucksackNumber,
                    c.Compartment,
-                   SUBSTRING(c.Contents, gn.n, 1) AS ItemType
-        FROM       compartment                     AS c
-       CROSS APPLY dbo.GetNums(1, LEN(c.Contents)) AS gn ),
+                   SUBSTRING(c.Contents, gs.value, 1) AS ItemType
+        FROM       compartment                         AS c
+       CROSS APPLY GENERATE_SERIES(1, LEN(c.Contents)) AS gs ),
      prio
   AS (SELECT i.RucksackNumber,
              i.Compartment,

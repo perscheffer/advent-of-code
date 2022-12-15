@@ -15,14 +15,14 @@ drawing
                                 FROM dbo.Input
                                WHERE Data IS NULL) - 1)
          AND Data IS NOT NULL)
-SELECT       gn.n                                     AS StackNumber,
-             ROW_NUMBER() OVER (PARTITION BY gn.n
+SELECT       gs.value                                 AS StackNumber,
+             ROW_NUMBER() OVER (PARTITION BY gs.value
                                     ORDER BY d.Depth) AS Depth, -- Calculate new depth after removing "empty crates"
-             SUBSTRING(d.Data, 4 * gn.n - 2, 1)       AS Crate        -- The second and then every fourth character is a crate
+             SUBSTRING(d.Data, 4 * gs.value - 2, 1)   AS Crate    -- The second and then every fourth character is a crate
   INTO       #Stack
-  FROM       drawing                                      AS d
- CROSS APPLY dbo.GetNums(1, (DATALENGTH(d.Data) + 2) / 4) AS gn
- WHERE       SUBSTRING(d.Data, 4 * gn.n - 2, 1) <> ' ';
+  FROM       drawing                                          AS d
+ CROSS APPLY GENERATE_SERIES(1, (DATALENGTH(d.Data) + 2) / 4) AS gs
+ WHERE       SUBSTRING(d.Data, 4 * gs.value - 2, 1) <> ' ';
 
 --------------------------------------------------------------------------------
 --  CREATE TEMP TABLE #Move FROM THE SECOND PART OF THE INPUT
